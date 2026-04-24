@@ -1,25 +1,75 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, TrendingUp, ShieldCheck, Truck } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { ProductCard } from '@/components/product-card';
-import { products, categories } from '@/lib/data';
+import type { Product } from '@/lib/data';
+import { categories } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const filtered = products.filter((p) => {
-    const matchesCategory =
-      activeCategory === 'All' || p.category === activeCategory;
-    const matchesSearch =
-      searchQuery === '' ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.origin.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProducts() {
+      const { data, error } = await supabase.from('products').select('*');
+
+      if (cancelled) return;
+      if (error) {
+        setProducts([]);
+        return;
+      }
+
+      const normalized: Product[] = (data ?? []).map((row: any) => ({
+        id: String(row.id ?? ''),
+        name: String(row.name ?? ''),
+        nameVi: String(row.nameVi ?? row.name_vi ?? ''),
+        category: (row.category ?? 'Fruits') as Product['category'],
+        origin: String(row.origin ?? ''),
+        season: String(row.season ?? ''),
+        minOrder: String(row.minOrder ?? row.min_order ?? ''),
+        priceRange: String(row.priceRange ?? row.price_range ?? ''),
+        description: String(row.description ?? ''),
+        images:
+          Array.isArray(row.images) && row.images.length > 0
+            ? row.images
+            : ['https://images.pexels.com/photos/4110256/pexels-photo-4110256.jpeg?auto=compress&cs=tinysrgb&w=800'],
+        seller: (row.seller ?? {
+          companyName: '',
+          companyNameVi: '',
+          province: '',
+          certifications: [],
+          exportCapacity: '',
+          established: new Date().getFullYear(),
+        }) as Product['seller'],
+      }));
+
+      setProducts(normalized.filter((p) => p.id && p.name));
+    }
+
+    loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchesCategory =
+        activeCategory === 'All' || p.category === activeCategory;
+      const matchesSearch =
+        searchQuery === '' ||
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.origin.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, activeCategory, searchQuery]);
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -123,7 +173,14 @@ export default function Home() {
           </div>
         </div>
 
-        {filtered.length > 0 ? (
+        {products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Search className="h-12 w-12 text-gray-300" />
+            <p className="mt-4 text-lg font-medium text-gray-500">
+              No products yet. Check back soon!
+            </p>
+          </div>
+        ) : filtered.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((product) => (
               <ProductCard key={product.id} product={product} />
