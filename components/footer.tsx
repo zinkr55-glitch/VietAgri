@@ -103,8 +103,7 @@ export function Footer() {
         <div className="mt-10 border-t border-gray-800 pt-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-xs text-gray-500">
-              &copy; {new Date().getFullYear()} VietAgri Exchange. All rights
-              reserved.
+              &copy; 2025 VietAgri Exchange. All rights reserved.
             </p>
             <div className="flex gap-4">
               <span className="text-xs text-gray-500 hover:text-gray-400 cursor-pointer">
