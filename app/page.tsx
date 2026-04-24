@@ -18,13 +18,19 @@ export default function Home() {
     let cancelled = false;
 
     async function loadProducts() {
-      const { data, error } = await supabase.from('products').select('*');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('status', 'approved');
 
       if (cancelled) return;
       if (error) {
+        console.error('Supabase products fetch failed', error);
         setProducts([]);
         return;
       }
+
+      console.debug('Supabase products fetched', { count: data?.length ?? 0 });
 
       const normalized: Product[] = (data ?? []).map((row: any) => ({
         id: String(row.id ?? ''),
