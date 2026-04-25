@@ -13,11 +13,13 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadProducts() {
+      setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -27,10 +29,11 @@ export default function Home() {
       if (error) {
         console.error('Supabase products fetch failed', error);
         setProducts([]);
+        setLoading(false);
         return;
       }
 
-      console.debug('Supabase products fetched', { count: data?.length ?? 0 });
+      console.log('Supabase products fetched', { count: data?.length ?? 0, data });
 
       const normalized: Product[] = (data ?? []).map((row: any) => ({
         id: String(row.id ?? ''),
@@ -57,6 +60,7 @@ export default function Home() {
       }));
 
       setProducts(normalized.filter((p) => p.id && p.name));
+      setLoading(false);
     }
 
     loadProducts();
@@ -179,7 +183,14 @@ export default function Home() {
           </div>
         </div>
 
-        {products.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-600" />
+            <p className="mt-4 text-sm font-medium text-gray-500">
+              Loading products...
+            </p>
+          </div>
+        ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Search className="h-12 w-12 text-gray-300" />
             <p className="mt-4 text-lg font-medium text-gray-500">
